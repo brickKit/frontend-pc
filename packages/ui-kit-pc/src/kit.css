@@ -1,0 +1,7 @@
+/* The templates' layout, in the theme's tokens only (Ant Design Vue's CSS variables and the table's). */
+.be-page { display: flex; flex-direction: column; gap: var(--be-gap); padding: var(--be-gap); }
+.be-page-head { display: flex; align-items: center; gap: var(--be-gap-small); }
+.be-page-title { margin: 0; font-size: var(--be-title-size); font-weight: 600; }
+.be-page-actions { margin-left: auto; display: flex; gap: var(--be-gap-small); }
+.be-list-filters, .be-form-submit { display: flex; flex-wrap: wrap; gap: var(--be-gap-small); }
+.be-list-paging { display: flex; justify-content: flex-end; }

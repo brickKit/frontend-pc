@@ -1,0 +1,50 @@
+# The baseline this repository's release is composed for (FP03): the components and exact versions of the assembly's
+# standard deployment, copied from its brickkit.yaml (here: the C12-A cell's, the newest full set). A customer whose
+# baseline differs forks this repository and changes this file, as with a customer's own shell.
+components:
+  - id: crm/opportunity
+    version: 3.0.13
+  - id: erp/billing
+    version: 3.0.73
+  - id: erp/costing
+    version: 3.0.13
+  - id: erp/credit
+    version: 3.0.49
+  - id: erp/finance
+    version: 3.0.23
+  - id: erp/inventory
+    version: 3.0.52
+  - id: erp/payment
+    version: 3.0.31
+  - id: erp/purchase
+    version: 3.0.27
+  - id: erp/sales
+    version: 3.0.65
+  - id: infra/attachment
+    version: 3.0.6
+  - id: infra/audit
+    version: 3.0.49
+  - id: infra/authz
+    version: 3.0.60
+  - id: infra/bff-mobile
+    version: 3.0.2
+  - id: infra/iam-casdoor
+    version: 3.0.59
+  - id: infra/notification
+    version: 3.0.11
+  - id: infra/print
+    version: 3.0.24
+  - id: infra/workflow
+    version: 3.0.13
+  - id: integration/im-dingtalk
+    version: 3.0.4
+  - id: mdm/currency
+    version: 3.0.44
+  - id: mdm/employee
+    version: 3.0.16
+  - id: mdm/org
+    version: 3.0.46
+  - id: mdm/partner
+    version: 3.0.52
+  - id: mdm/product
+    version: 3.0.49

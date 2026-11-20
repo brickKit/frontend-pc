@@ -1,0 +1,14 @@
+{
+  "name": "@be/shell",
+  "version": "3.0.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@be/api": "workspace:*",
+    "@be/ui-kit-pc": "workspace:*",
+    "vue": "3.5.45",
+    "vue-i18n": "11.4.22",
+    "vue-router": "5.5.1"
+  }
+}

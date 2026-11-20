@@ -54,7 +54,7 @@
 | 编号 | 规则 |
 | --- | --- |
 | FP06 | **会话**：页面从不碰令牌。所有请求同源、带 Cookie；改变状态的请求带 `BE-Request: 1`（P11.2），轮询与定时刷新（角标、`permissions`、`version.json`）另带 `BE-Polling: 1`（P11.7），页签隐藏时停。<br>**登录门槛**：外壳启动先 `GET /api/features`；401 就整页跳到 `/api/iam/login?return_to=<编码后的路径与查询串>`（history 路由，片段不带；身份成员只接受以 `/` 开头、不以 `//` 开头的路径）。<br>**需要登录**：任何请求答 401，原因是 `SESSION_ENDED`（边缘：会话已结束）或 `TOKEN_INVALID`（没有 Cookie：别的标签页已登出）：清掉浏览器状态（FP13 的例外保留），跳登录，带当前路径。经边缘收不到 `TOKEN_STALE`（边缘重换重放，P11.3）；`DEPENDENCY_UNAVAILABLE` 与别的 503 显示可重试，不跳登录。<br>**登出**：`POST /api/iam/logout`（带 `BE-Request`），成功或答 401 之后：用 `BroadcastChannel('be-session')` 通知其他标签页，清掉 `permissions`、`features`、请求缓存、列状态以外的会话数据与草稿（FP13 的例外保留），进外壳的“已登出”页（不发任何 API 请求，只有“重新登录”）。登出后不被身份提供方静默再登录是身份成员的义务（`iam-casdoor` 3.0.59：Casdoor 的登录应用不开登录会话，A178）。<br>**边缘的布局**：`/` 的静态站不挂 be-edge 中间件；`/api/` 下全部挂。会话结束后浏览器留着的 Cookie 不能挡住再登录：边缘答 `SESSION_ENDED` 时清掉会话 Cookie，身份成员的登录与回调路径带着 Cookie 也照公开路由转发（P2 补进线协议第 11 章与 be-edge） |
-| FP07 | **生成的客户端**：`packages/api` 用 openapi-typescript 从各组件的契约生成类型，用 openapi-fetch 发请求。契约取自基线里的精确版本：脚本从各组件仓库的该版本标签取 `contract/openapi.yaml`，放进 `packages/api/contracts/<组件>/<版本>.yaml` 并提交，基线一变就重新生成，检查核对两边一致。一个包装（`shell` 的 `useApi`）统一加 `BE-Request`、按 FP08 把错误分类、带幂等键（写请求一个用户动作一个键，重试与查询都用同一个键）。只对带幂等键的请求自动重试可重试的错误（最多 2 次，按 `Retry-After`，没有时 1 秒、3 秒）；不带幂等键的写请求从不自动重放，显示“暂时无法确认”（协议 20、UI31）。页面里不手写 `fetch` |
+| FP07 | **生成的客户端**：`packages/api` 用 openapi-typescript 从各组件的契约生成类型；请求只经外壳的 `request()`（不用 openapi-fetch：请求头、幂等键、重试与错误分类要在一处，P4 定）。外壳自己的三个平台请求（`features`、“我的操作”、登出）的组件没有发布用户面契约，按文档的形状手写类型。契约取自基线里的精确版本：脚本从各组件仓库的该版本标签取 `contract/openapi.yaml`，放进 `packages/api/contracts/<组件>/<版本>.yaml` 并提交，基线一变就重新生成，检查核对两边一致。一个包装（`shell` 的 `useApi`）统一加 `BE-Request`、按 FP08 把错误分类、带幂等键（写请求一个用户动作一个键，重试与查询都用同一个键）。只对读取（`GET`，本身幂等）与带幂等键的写请求自动重试可重试的错误（最多 2 次，按 `Retry-After`，没有时 1 秒、3 秒）；不带幂等键的写请求从不自动重放，显示“暂时无法确认”（协议 20、UI31）。页面里不手写 `fetch` |
 | FP08 | **错误与缺件的显示**（协议 20 的表；文字按 `reason` 与 `metadata` 从语言资源取，不显示服务端的 `title`）：<br>看不见与不存在一样显示（`NOT_FOUND`，不泄露对象是否存在）；`PERMISSION_DENIED` 显示无权并重取 `permissions`（FP05）；校验失败按 `violations` 定位到字段；`AUTHORIZATION_UNPROVABLE`、`AUTHORIZATION_VIEW_EXPIRED`、`DEPENDENCY_UNAVAILABLE` 与别的可重试原因显示“暂时无法确认，请稍后重试”，有 `Retry-After` 时按它，不显示为无权或空列表；`CAPABILITY_UNSUPPORTED`（501）显示“这个功能需要后端升级”，不重试；`IDEMPOTENCY_IN_PROGRESS` 显示“处理中”，稍后用同一个键再查；`IDEMPOTENCY_KEY_REUSED` 是本入口的缺陷：记日志、显示失败、下一次动作换新键；结果未确认（超时、连接中断、待办直发的动作没有答复）显示“处理中，结果未确认”，“查询结果”用同一个幂等键重发同一个请求（SDK 原样返回原结果，`replayed`）；答复里的数据可能不完整（例如待办的 `stale`）时显示提示与截至时间；被屏蔽的字段按 `_masked` 显示“无权查看”，不显示为空；批量操作逐项显示成功、失败（原因）、跳过；**不认识的原因按保护处理**：显示“操作未完成”与原因代码，从不显示为成功 |
 | FP09 | **待办的动作**（D68）：同意、驳回直接发到任务所属组件的决定入口，地址由任务的发布组件推出：`/api/<名字>/flow/tasks/{id}/decisions`（P17.14；名字是组件 ID 斜杠后的部分），不读投影里的地址；请求带幂等键与任务版本。决定的原因按 FP08 之外另加的文字显示：`VERSION_CONFLICT`、`TASK_NOT_PENDING`（任务已变，刷新待办）、`REVISION_CHANGED`（单据已改，打开单据看差异）、`SELF_APPROVAL`、`NOT_ASSIGNEE`、`NOT_QUALIFIED`（不能由你处理）、`QUALIFICATION_UNKNOWN`（暂时无法确认，可重试）。外壳不经统一待办转发，也不在本地把任务标成完成：等待办的下一次读取 |
 
@@ -122,7 +122,7 @@ UI01–UI31 由哪层守住：
 
 **部署的配置**（身份成员与边缘，格与生产各自填）：`IAM_CALLBACK_URL` 是边缘的来源加 `/api/iam/callback`，并登记为 Casdoor 应用的回调地址（格里是 `http://localhost:8200/api/iam/callback`，边缘放在 8200）；`IAM_AFTER_LOGIN_URL` 是 `/`；`IAM_COOKIE_SECURE` 生产为真，格里走 HTTP 为假。
 
-**工具与库**（2026-11-20 查的当前稳定版本；P4 装时核实能一起用，例如 TypeScript 7 与 `vue-tsc` 3，不合就用合得上的最新版本并记理由）：
+**工具与库**（2026-11-20 查的当前稳定版本，P4 装时核实）。不同的两处：TypeScript 7 是原生实现，没有 `vue-tsc` 要的 JS 接口（`ERR_PACKAGE_PATH_NOT_EXPORTED`），用 6 的最新版 6.0.3（`vue-tsc` 3.3.14 下实测能报出类型错误；openapi-typescript 声明要 TS 5，在 6.0.3 下实测生成的类型正确）；vue-i18n 11.4.23 发布不到一天，pnpm 的最短发布年龄拦下它，不绕过，用 11.4.22：
 
 | 名称 | 版本 | 用途 |
 | --- | --- | --- |
@@ -130,22 +130,31 @@ UI01–UI31 由哪层守住：
 | pnpm | 12.3.4 | 工作区与锁文件 |
 | Vue | 3.5.45 | 框架 |
 | vue-router | 5.5.1 | history 路由 |
-| vue-i18n | 11.4.23 | 语言资源（FP17） |
+| vue-i18n | 11.4.22 | 语言资源（FP17） |
 | Ant Design Vue | 4.2.6 | 组件库（只在 `ui-kit-pc`） |
 | vxe-table、vxe-pc-ui | 4.24.2、4.21.4 | 表格（包在 `<BeTable>` 后）；免费版的能力逐项核对，写进 `ui-kit-pc` 的说明 |
 | ECharts | 6.1.0 | 图表（首批不用，封装留位） |
-| openapi-typescript、openapi-fetch | 7.13.0、0.17.0 | 生成的类型与客户端（FP07） |
+| openapi-typescript | 7.13.0 | 生成的类型（FP07） |
 | DOMPurify | 3.4.18 | 富文本清洗（FP20） |
 | Vite、@vitejs/plugin-vue | 8.3.8、6.0.11 | 构建 |
-| Vitest | 5.1.1 | FE-1、FE-2 |
-| TypeScript、vue-tsc | 7.0.2、3.3.14 | 严格类型检查 |
-| ESLint、eslint-plugin-vue | 10.15.0、10.12.1 | lint（FP01、FP12、FP14、FP17 的规则） |
+| Vitest、@vue/test-utils、happy-dom、jsdom、fake-indexeddb | 5.1.1、2.6.0、21.0.4、31.0.1、6.2.8 | FE-1、FE-2（富文本的测试要 jsdom：DOMPurify 在 happy-dom 里不工作） |
+| yaml | 2.9.1 | 读基线（FP03） |
+| TypeScript、vue-tsc | 6.0.3、3.3.14 | 严格类型检查 |
+| ESLint、eslint-plugin-vue、typescript-eslint、vue-eslint-parser | 10.15.0、10.12.1、8.73.0、10.4.2 | lint（FP01、FP14、FP17 的规则；FP12 的样式检查是 `scripts/check-styles.mjs`） |
 | Playwright | 1.65.1 | FE-3、FE-4（先问维护者） |
 | nginx（非特权 Alpine 镜像） | P6 取当时的稳定版 | 静态服务（FP15） |
 
 ## 实现状态
 
-（P1：设计，考试意见已处理。）
+P4（2026-11-20）：仓库骨架。工作区与锁文件；`ui-kit-pc`（主题、四种模板、`BeTable`、导出、富文本）、外壳（会话、请求、错误分类、菜单过滤、权限、草稿、格式、导航、偏好、运行时配置、版本检查与应用本身）、`build`、`api` 的生成；lint（警告也不放过，每条规则有违规样例证明会红）、`vue-tsc`、FE-1 与 FE-2 共 61 项。实现时定下或发现的：
+
+- 原因表从 be-protocol 的 `vectors/errors.json` 生成（`reasons.generated.ts`），不手抄；
+- DOMPurify 在不完整的 DOM 里会把输入原样返回（等于不清洗）：`sanitize` 在它不可用时把全部内容转义成文本；
+- AntDV 4 没有 `theme.getDesignToken`：派生令牌在 `ConfigProvider` 里用 `useToken()` 取（`BeTheme.vue`）；
+- 外壳要知道调用者是谁（草稿按用户隔离），身份成员没有这样的接口：授权组件 3.0.61 的“我的操作”回答带 `principal`；
+- 只有一个页面模块都没有时，产物的脚本是 1.9 MB 的一块（AntDV 与 vxe 全量）：P5 加路由级按需加载与第三方分块并量首屏。
+
+还没做：页面模块（P5）、法人切换（要 `mdm/org` 的读取，P5）、AntDV 在 FP20 的内容安全策略下的实测与镜像（P6）。
 
 ## 取舍
 
@@ -163,4 +172,5 @@ UI01–UI31 由哪层守住：
 - 后端为入口声明最低客户端版本（协议 20）：放在哪里（例如 `features` 里）随第一个需要它的后端改动定；首批靠 `version.json` 提示刷新（FP19）。
 - `features` 带能力（FP04）：be-ops 现在只出组件与版本，随第一个需要能力的页面模块补。
 - 共用终端的短会话：随 `frontend/terminal`；PC 只有“共用终端”这个部署开关决定登出时清不清草稿（FP13）。
+- 授权组件与身份成员没有发布用户面的 OpenAPI 契约：外壳的三个平台请求按文档手写类型（FP07）。
 - 生产部署的边缘路由由装配工具从各组件的公网前缀生成（`docs/zh/04-foundations/09-edge.md`）；格里先由套件生成。
