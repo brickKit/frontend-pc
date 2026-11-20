@@ -159,7 +159,9 @@ P5（2026-11-20）：首批七个页面模块（`workflow`、`notification`、`p
 - 测试抓到 `decisionPath` 只看组件 ID 斜杠后的部分，`../x` 也能过：改为校验完整的组件 ID；
 - 全量安装 vxe-pc-ui 让首屏的脚本从 862 kB 涨到 1522 kB（gzip 279 kB 与 472 kB）、样式从 154 kB 涨到 630 kB，而 vxe-table 只从它取类型：只装 vxe-table（P6 在浏览器里核实表格照常渲染）。
 
-还没做：镜像与部署、AntDV 在 FP20 的内容安全策略下的实测（P6）。
+P6（2026-11-20）：镜像（`Dockerfile`：Node 24.21.0 构建，nginx 1.30.6 非特权 Alpine 镜像服务，两个基础镜像都钉摘要）、`deploy/`（nginx 的配置与安全头、启动时写 `/config.json` 的脚本）、`component.yaml`（端口 8501：注册表原来的 80 非特权进程绑不了，发布前改，8080 是退役的 `mdm/customer` 的、不能复用）。对容器核对过：每个页面带内容安全策略与另两个安全头；`/assets/` 长期缓存，`index.html`、`version.json`、`config.json` 不缓存；深层路由回退到 `index.html`，`/api/` 答 404；不合形状的品牌值被忽略并记日志；以用户 101 运行；`index.html` 没有内联脚本。
+
+还没做：AntDV 在 FP20 的内容安全策略下是否报违规、vxe-table 不装 vxe-pc-ui 时是否照常渲染，要真实浏览器看，随 FE-3（先问维护者）。
 
 ## 取舍
 

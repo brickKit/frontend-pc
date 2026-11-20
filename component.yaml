@@ -1,0 +1,68 @@
+apiVersion: brickkit/v1
+kind: Component
+
+metadata:
+  id: frontend/pc
+  name: PC office entry
+  version: 3.0.0
+  description: "The PC office entry (protocol 20): a static single-page application behind the edge at /, page modules composed at build time from its baseline, menus by the deployment's features and the user's own operations, the session held by the identity member and the token by the edge (never in the page), offline drafts per user; the deployment's branding read at start"
+  repository: https://github.com/brickKit/frontend-pc
+
+# the backend components the first page modules read through the edge (never from this server); optional: a module
+# whose component is absent is hidden at run time (FP04). Their versions are baseline/standard.yaml's.
+dependencies:
+  components:
+    - id: infra/workflow@3.0.13
+      optional: true
+    - id: infra/notification@3.0.11
+      optional: true
+    - id: mdm/partner@3.0.52
+      optional: true
+    - id: mdm/product@3.0.49
+      optional: true
+    - id: erp/inventory@3.0.52
+      optional: true
+    - id: erp/sales@3.0.65
+      optional: true
+    - id: erp/purchase@3.0.27
+      optional: true
+    - id: mdm/org@3.0.46
+      optional: true
+
+deployment:
+  type: container
+  build:
+    context: .
+    dockerfile: Dockerfile
+  port: 8501
+
+healthCheck:
+  type: http
+  path: /healthz
+
+readinessCheck:
+  type: http
+  path: /healthz
+
+configSchema:
+  properties:
+    PC_PRODUCT_NAME:
+      description: the product name in the header (letters, digits, spaces, '.', '_', '-'); default BrickEnterprise
+      type: string
+    PC_PRIMARY_COLOR:
+      description: 'the brand color, #rrggbb; overrides the design tokens'' primary color'
+      type: string
+    PC_LOGO_URL:
+      description: the logo, a path on this site (served by the edge); an outside address is refused
+      type: string
+    PC_WATERMARK:
+      description: the user's name over the pages (true or false)
+      type: boolean
+    PC_GRAY_MODE:
+      description: every page in gray (true or false)
+      type: boolean
+    PC_SHARED_TERMINAL:
+      description: a shared terminal clears the user's local drafts at logout, except one being submitted (true or false)
+      type: boolean
+  required: []
+  type: object
