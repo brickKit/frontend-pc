@@ -98,6 +98,13 @@ onBeforeUnmount(() => window.removeEventListener("keydown", key));
           >
           <span class="be-shell-product">{{ state.config.productName }}</span>
           <BeSpace class="be-shell-tools">
+            <BeSelect
+              v-if="state.legalEntities.length"
+              :value="state.legalEntity"
+              :options="state.legalEntities.map((l) => ({ value: l.id, label: `${l.code} ${l.name}` }))"
+              :aria-label="t('shell.legalEntity')"
+              @change="(v: unknown) => (state.legalEntity = String(v))"
+            />
             <BeButton @click="paletteOpen = true">
               {{ t("shell.palette") }}
             </BeButton>

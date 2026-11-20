@@ -1,0 +1,16 @@
+export default {
+  "zh-CN": { title: "待办", tasks: "我的待办", done: "已办", task: "任务", summary: "事项", document: "单据",
+    state: "状态", received: "收到时间", stale: "可能不是最新", approve: "同意", reject: "驳回", comment: "意见",
+    decided: "已提交，待办会在下次刷新时更新",
+    reasons: { VERSION_CONFLICT: "任务已经变了，请刷新后再处理", TASK_NOT_PENDING: "任务已不在待处理状态，请刷新待办",
+      REVISION_CHANGED: "单据已被修改，请打开单据看变化", SELF_APPROVAL: "不能审批自己提交的单据",
+      NOT_ASSIGNEE: "这个任务不由你处理", NOT_QUALIFIED: "你此刻不能处理这个任务",
+      QUALIFICATION_UNKNOWN: "暂时无法确认你的资格，请稍后重试", REQUEST_INVALID: "驳回要写意见" } },
+  "en-US": { title: "Worklist", tasks: "My tasks", done: "Done", task: "Task", summary: "Subject", document: "Document",
+    state: "State", received: "Received", stale: "May be out of date", approve: "Approve", reject: "Reject",
+    comment: "Comment", decided: "Sent; the worklist shows it at its next refresh",
+    reasons: { VERSION_CONFLICT: "The task changed; refresh and try again", TASK_NOT_PENDING: "The task is no longer pending; refresh the worklist",
+      REVISION_CHANGED: "The document changed; open it to see what changed", SELF_APPROVAL: "You cannot approve your own document",
+      NOT_ASSIGNEE: "This task is not yours", NOT_QUALIFIED: "You cannot decide this task now",
+      QUALIFICATION_UNKNOWN: "Your qualification cannot be confirmed now; try again", REQUEST_INVALID: "A rejection needs a comment" } },
+};

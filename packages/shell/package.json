@@ -3,7 +3,10 @@
   "version": "3.0.0",
   "private": true,
   "type": "module",
-  "exports": { ".": "./src/index.ts" },
+  "exports": {
+    ".": "./src/index.ts",
+    "./module": "./src/module.ts"
+  },
   "dependencies": {
     "@be/api": "workspace:*",
     "@be/ui-kit-pc": "workspace:*",

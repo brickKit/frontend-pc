@@ -3,7 +3,7 @@ export const messages = {
   "zh-CN": {
     shell: { services: "服务", search: "搜索服务与菜单", favorites: "收藏", recent: "最近访问", palette: "命令面板",
       logout: "退出登录", loggedOut: "你已退出登录", loginAgain: "重新登录", home: "首页", noServices: "没有可用的服务",
-      retryTitle: "暂时无法确认，请稍后重试", retry: "重试", reload: "系统已更新，刷新页面以使用新版本",
+      retryTitle: "暂时无法确认，请稍后重试", retry: "重试", more: "加载更多", legalEntity: "法人", reload: "系统已更新，刷新页面以使用新版本",
       reloadNow: "刷新", theme: "外观", light: "亮色", dark: "暗色", system: "跟随系统", density: "密度",
       comfortable: "标准", compact: "紧凑", language: "语言", stale: "权限信息可能不是最新的", close: "关闭",
       unsaved: "有未保存的内容，确定关闭吗？" },
@@ -17,7 +17,7 @@ export const messages = {
   "en-US": {
     shell: { services: "Services", search: "Search services and menus", favorites: "Favorites", recent: "Recent",
       palette: "Command palette", logout: "Log out", loggedOut: "You have logged out", loginAgain: "Log in again",
-      home: "Home", noServices: "No services available", retryTitle: "Cannot confirm right now, try again", retry: "Retry",
+      home: "Home", noServices: "No services available", retryTitle: "Cannot confirm right now, try again", retry: "Retry", more: "Load more", legalEntity: "Legal entity",
       reload: "A new version is available: reload the page to use it", reloadNow: "Reload", theme: "Appearance",
       light: "Light", dark: "Dark", system: "System", density: "Density", comfortable: "Comfortable", compact: "Compact",
       language: "Language", stale: "Your permissions may be out of date", close: "Close",

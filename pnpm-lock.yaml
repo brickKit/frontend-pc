@@ -158,6 +158,153 @@ importers:
         specifier: 3.3.14
         version: 3.3.14(typescript@6.0.3)
 
+  modules/inventory:
+    dependencies:
+      '@be/api':
+        specifier: workspace:*
+        version: link:../../packages/api
+      '@be/shell':
+        specifier: workspace:*
+        version: link:../../packages/shell
+      '@be/ui-kit-pc':
+        specifier: workspace:*
+        version: link:../../packages/ui-kit-pc
+      vue:
+        specifier: 3.5.45
+        version: 3.5.45(typescript@6.0.3)
+      vue-i18n:
+        specifier: 11.4.22
+        version: 11.4.22(vue@3.5.45(typescript@6.0.3))
+      vue-router:
+        specifier: 5.5.1
+        version: 5.5.1(@vue/compiler-sfc@3.5.45)(rolldown@1.2.19)(vite@8.3.8(@types/node@26.6.6)(yaml@2.9.1))(vue@3.5.45(typescript@6.0.3))
+
+  modules/notification:
+    dependencies:
+      '@be/api':
+        specifier: workspace:*
+        version: link:../../packages/api
+      '@be/shell':
+        specifier: workspace:*
+        version: link:../../packages/shell
+      '@be/ui-kit-pc':
+        specifier: workspace:*
+        version: link:../../packages/ui-kit-pc
+      vue:
+        specifier: 3.5.45
+        version: 3.5.45(typescript@6.0.3)
+      vue-i18n:
+        specifier: 11.4.22
+        version: 11.4.22(vue@3.5.45(typescript@6.0.3))
+      vue-router:
+        specifier: 5.5.1
+        version: 5.5.1(@vue/compiler-sfc@3.5.45)(rolldown@1.2.19)(vite@8.3.8(@types/node@26.6.6)(yaml@2.9.1))(vue@3.5.45(typescript@6.0.3))
+
+  modules/partner:
+    dependencies:
+      '@be/api':
+        specifier: workspace:*
+        version: link:../../packages/api
+      '@be/shell':
+        specifier: workspace:*
+        version: link:../../packages/shell
+      '@be/ui-kit-pc':
+        specifier: workspace:*
+        version: link:../../packages/ui-kit-pc
+      vue:
+        specifier: 3.5.45
+        version: 3.5.45(typescript@6.0.3)
+      vue-i18n:
+        specifier: 11.4.22
+        version: 11.4.22(vue@3.5.45(typescript@6.0.3))
+      vue-router:
+        specifier: 5.5.1
+        version: 5.5.1(@vue/compiler-sfc@3.5.45)(rolldown@1.2.19)(vite@8.3.8(@types/node@26.6.6)(yaml@2.9.1))(vue@3.5.45(typescript@6.0.3))
+
+  modules/product:
+    dependencies:
+      '@be/api':
+        specifier: workspace:*
+        version: link:../../packages/api
+      '@be/shell':
+        specifier: workspace:*
+        version: link:../../packages/shell
+      '@be/ui-kit-pc':
+        specifier: workspace:*
+        version: link:../../packages/ui-kit-pc
+      vue:
+        specifier: 3.5.45
+        version: 3.5.45(typescript@6.0.3)
+      vue-i18n:
+        specifier: 11.4.22
+        version: 11.4.22(vue@3.5.45(typescript@6.0.3))
+      vue-router:
+        specifier: 5.5.1
+        version: 5.5.1(@vue/compiler-sfc@3.5.45)(rolldown@1.2.19)(vite@8.3.8(@types/node@26.6.6)(yaml@2.9.1))(vue@3.5.45(typescript@6.0.3))
+
+  modules/purchase:
+    dependencies:
+      '@be/api':
+        specifier: workspace:*
+        version: link:../../packages/api
+      '@be/shell':
+        specifier: workspace:*
+        version: link:../../packages/shell
+      '@be/ui-kit-pc':
+        specifier: workspace:*
+        version: link:../../packages/ui-kit-pc
+      vue:
+        specifier: 3.5.45
+        version: 3.5.45(typescript@6.0.3)
+      vue-i18n:
+        specifier: 11.4.22
+        version: 11.4.22(vue@3.5.45(typescript@6.0.3))
+      vue-router:
+        specifier: 5.5.1
+        version: 5.5.1(@vue/compiler-sfc@3.5.45)(rolldown@1.2.19)(vite@8.3.8(@types/node@26.6.6)(yaml@2.9.1))(vue@3.5.45(typescript@6.0.3))
+
+  modules/sales:
+    dependencies:
+      '@be/api':
+        specifier: workspace:*
+        version: link:../../packages/api
+      '@be/shell':
+        specifier: workspace:*
+        version: link:../../packages/shell
+      '@be/ui-kit-pc':
+        specifier: workspace:*
+        version: link:../../packages/ui-kit-pc
+      vue:
+        specifier: 3.5.45
+        version: 3.5.45(typescript@6.0.3)
+      vue-i18n:
+        specifier: 11.4.22
+        version: 11.4.22(vue@3.5.45(typescript@6.0.3))
+      vue-router:
+        specifier: 5.5.1
+        version: 5.5.1(@vue/compiler-sfc@3.5.45)(rolldown@1.2.19)(vite@8.3.8(@types/node@26.6.6)(yaml@2.9.1))(vue@3.5.45(typescript@6.0.3))
+
+  modules/workflow:
+    dependencies:
+      '@be/api':
+        specifier: workspace:*
+        version: link:../../packages/api
+      '@be/shell':
+        specifier: workspace:*
+        version: link:../../packages/shell
+      '@be/ui-kit-pc':
+        specifier: workspace:*
+        version: link:../../packages/ui-kit-pc
+      vue:
+        specifier: 3.5.45
+        version: 3.5.45(typescript@6.0.3)
+      vue-i18n:
+        specifier: 11.4.22
+        version: 11.4.22(vue@3.5.45(typescript@6.0.3))
+      vue-router:
+        specifier: 5.5.1
+        version: 5.5.1(@vue/compiler-sfc@3.5.45)(rolldown@1.2.19)(vite@8.3.8(@types/node@26.6.6)(yaml@2.9.1))(vue@3.5.45(typescript@6.0.3))
+
   packages/api:
     dependencies:
       yaml:
@@ -166,7 +313,7 @@ importers:
     devDependencies:
       openapi-typescript:
         specifier: 7.13.0
-        version: 7.13.0
+        version: 7.13.0(typescript@6.0.3)
 
   packages/build:
     dependencies:

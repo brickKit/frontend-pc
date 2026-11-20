@@ -1,0 +1,515 @@
+openapi: 3.1.0
+info:
+  title: erp/purchase user surface
+  version: 3.0.0
+  description: >-
+    Purchase requisitions, purchase orders and their approval and revisions, goods receipts (through erp/inventory: the
+    received quantity is taken from its movements), service acceptance, purchase returns and the purchase policy, for
+    people and the front end. Every route needs a platform access token and the operation in x-operation; what the
+    caller may not see answers 404 (every document carries the legal entity, department and owner dimensions). Errors
+    are application/problem+json with a reason. Lists page by cursor only (protocol 14). Quantities and amounts are
+    decimal strings. Prepayments and price lists are in the contract but not in this version: they answer
+    CAPABILITY_UNSUPPORTED (D75). The match basis and the read of the incremental facts are on the system surface
+    (proto). Approvals run on the SDK's flow kernel (be-protocol chapter 17): its standard routes under
+    /api/purchase/flow/tasks (a decision, a task, the paused tasks) are registered by the SDK and specified by the
+    protocol, not here; the approve and reject routes below decide the caller's task of the document through it.
+paths:
+  /api/purchase/requisitions:
+    get:
+      operationId: listRequisitions
+      x-operation: erp.purchase.requisition.read
+      parameters:
+        - {name: legal_entity_id, in: query, schema: {type: string, format: uuid}}
+        - {name: department_id, in: query, schema: {type: string, format: uuid}}
+        - {name: state, in: query, schema: {enum: [draft, submitted, approved, rejected, cancelled, closed]}}
+        - {name: q, in: query, schema: {type: string}, description: 'the number'}
+        - $ref: '#/components/parameters/cursor'
+        - $ref: '#/components/parameters/limit'
+      responses:
+        '200':
+          description: one page, newest first
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [requisitions, next_cursor]
+                properties:
+                  requisitions: {type: array, items: {$ref: '#/components/schemas/Requisition'}}
+                  next_cursor: {type: string}
+        default: {$ref: '#/components/responses/problem'}
+    post:
+      operationId: createRequisition
+      x-operation: erp.purchase.requisition.edit
+      summary: A draft requisition (Idempotency-Key)
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/RequisitionIn'}}}}
+      responses:
+        '200': {description: the requisition, content: {application/json: {schema: {$ref: '#/components/schemas/Requisition'}}}}
+        default: {$ref: '#/components/responses/problem'}
+  /api/purchase/requisitions/{id}:
+    parameters: [{$ref: '#/components/parameters/id'}]
+    get:
+      operationId: getRequisition
+      x-operation: erp.purchase.requisition.read
+      responses:
+        '200': {description: the requisition, content: {application/json: {schema: {$ref: '#/components/schemas/Requisition'}}}}
+        default: {$ref: '#/components/responses/problem'}
+    patch:
+      operationId: updateRequisition
+      x-operation: erp.purchase.requisition.edit
+      summary: Change a draft (its whole lines), by version
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/RequisitionIn'}}}}
+      responses:
+        '200': {description: the requisition, content: {application/json: {schema: {$ref: '#/components/schemas/Requisition'}}}}
+        default: {$ref: '#/components/responses/problem'}
+  /api/purchase/requisitions/{id}/submit:
+    parameters: [{$ref: '#/components/parameters/id'}]
+    post: {operationId: submitRequisition, x-operation: erp.purchase.requisition.edit, summary: 'Submit a draft (PR02); approved at once when the policy asks for no approval', requestBody: {content: {application/json: {schema: {$ref: '#/components/schemas/Versioned'}}}}, responses: {'200': {description: the requisition, content: {application/json: {schema: {$ref: '#/components/schemas/Requisition'}}}}, default: {$ref: '#/components/responses/problem'}}}
+  /api/purchase/requisitions/{id}/approve:
+    parameters: [{$ref: '#/components/parameters/id'}]
+    post: {operationId: approveRequisition, x-operation: erp.purchase.requisition.approve, summary: 'Approve a submitted requisition: the decision on the caller''s approval task (PR03; a candidate, not the submitter''s person; Idempotency-Key optional, else the task, the caller and the decision)', requestBody: {content: {application/json: {schema: {$ref: '#/components/schemas/Versioned'}}}}, responses: {'200': {description: the requisition, content: {application/json: {schema: {$ref: '#/components/schemas/Requisition'}}}}, default: {$ref: '#/components/responses/problem'}}}
+  /api/purchase/requisitions/{id}/reject:
+    parameters: [{$ref: '#/components/parameters/id'}]
+    post: {operationId: rejectRequisition, x-operation: erp.purchase.requisition.approve, summary: 'Reject a submitted requisition with a reason: the rejection of the caller''s approval task (PR04)', requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/Reason'}}}}, responses: {'200': {description: the requisition, content: {application/json: {schema: {$ref: '#/components/schemas/Requisition'}}}}, default: {$ref: '#/components/responses/problem'}}}
+  /api/purchase/requisitions/{id}/cancel:
+    parameters: [{$ref: '#/components/parameters/id'}]
+    post: {operationId: cancelRequisition, x-operation: erp.purchase.requisition.edit, summary: 'Cancel a draft, a submitted or an approved requisition nothing was ordered from (PR05)', requestBody: {content: {application/json: {schema: {$ref: '#/components/schemas/Versioned'}}}}, responses: {'200': {description: the requisition, content: {application/json: {schema: {$ref: '#/components/schemas/Requisition'}}}}, default: {$ref: '#/components/responses/problem'}}}
+  /api/purchase/orders:
+    get:
+      operationId: listOrders
+      x-operation: erp.purchase.order.read
+      parameters:
+        - {name: legal_entity_id, in: query, schema: {type: string, format: uuid}}
+        - {name: supplier_id, in: query, schema: {type: string, format: uuid}}
+        - {name: owner_id, in: query, schema: {type: string}}
+        - {name: department_id, in: query, schema: {type: string, format: uuid}}
+        - {name: state, in: query, schema: {enum: [draft, submitted, approved, completed, closed, cancelled]}}
+        - {name: q, in: query, schema: {type: string}, description: 'the number'}
+        - $ref: '#/components/parameters/cursor'
+        - $ref: '#/components/parameters/limit'
+      responses:
+        '200':
+          description: one page, newest first
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [orders, next_cursor]
+                properties:
+                  orders: {type: array, items: {$ref: '#/components/schemas/Order'}}
+                  next_cursor: {type: string}
+        default: {$ref: '#/components/responses/problem'}
+    post:
+      operationId: createOrder
+      x-operation: erp.purchase.order.edit
+      summary: A draft order (Idempotency-Key); lines may come from approved requisition lines (PO01)
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/OrderIn'}}}}
+      responses:
+        '200': {description: the order, content: {application/json: {schema: {$ref: '#/components/schemas/Order'}}}}
+        default: {$ref: '#/components/responses/problem'}
+  /api/purchase/orders/{id}:
+    parameters: [{$ref: '#/components/parameters/id'}]
+    get:
+      operationId: getOrder
+      x-operation: erp.purchase.order.read
+      responses:
+        '200': {description: the order, content: {application/json: {schema: {$ref: '#/components/schemas/Order'}}}}
+        default: {$ref: '#/components/responses/problem'}
+    patch:
+      operationId: updateOrder
+      x-operation: erp.purchase.order.edit
+      summary: Change a draft (PO02), by version
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/OrderIn'}}}}
+      responses:
+        '200': {description: the order, content: {application/json: {schema: {$ref: '#/components/schemas/Order'}}}}
+        default: {$ref: '#/components/responses/problem'}
+  /api/purchase/orders/{id}/submit:
+    parameters: [{$ref: '#/components/parameters/id'}]
+    post: {operationId: submitOrder, x-operation: erp.purchase.order.edit, summary: 'Submit a draft (PO03); approved at once when the policy asks for no approval', requestBody: {content: {application/json: {schema: {$ref: '#/components/schemas/Versioned'}}}}, responses: {'200': {description: the order, content: {application/json: {schema: {$ref: '#/components/schemas/Order'}}}}, default: {$ref: '#/components/responses/problem'}}}
+  /api/purchase/orders/{id}/approve:
+    parameters: [{$ref: '#/components/parameters/id'}]
+    post: {operationId: approveOrder, x-operation: erp.purchase.order.approve, summary: 'Approve a submitted order: the decision on the caller''s approval task (PO04; a candidate, not the submitter''s person; Idempotency-Key optional, else the task, the caller and the decision)', requestBody: {content: {application/json: {schema: {$ref: '#/components/schemas/Versioned'}}}}, responses: {'200': {description: the order, content: {application/json: {schema: {$ref: '#/components/schemas/Order'}}}}, default: {$ref: '#/components/responses/problem'}}}
+  /api/purchase/orders/{id}/reject:
+    parameters: [{$ref: '#/components/parameters/id'}]
+    post: {operationId: rejectOrder, x-operation: erp.purchase.order.approve, summary: 'Reject a submitted order back to draft with a reason: the rejection of the caller''s approval task (PO05)', requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/Reason'}}}}, responses: {'200': {description: the order, content: {application/json: {schema: {$ref: '#/components/schemas/Order'}}}}, default: {$ref: '#/components/responses/problem'}}}
+  /api/purchase/orders/{id}/revise:
+    parameters: [{$ref: '#/components/parameters/id'}]
+    post: {operationId: reviseOrder, x-operation: erp.purchase.order.edit, summary: 'A new revision of an approved order, back to submitted; quantities not below what is received, receiving and accepted (PO06)', requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/OrderIn'}}}}, responses: {'200': {description: the order, content: {application/json: {schema: {$ref: '#/components/schemas/Order'}}}}, default: {$ref: '#/components/responses/problem'}}}
+  /api/purchase/orders/{id}/close:
+    parameters: [{$ref: '#/components/parameters/id'}]
+    post: {operationId: closeOrder, x-operation: erp.purchase.order.edit, summary: 'Close an approved order: no more receipts or acceptances; nothing receiving (PO10)', requestBody: {content: {application/json: {schema: {$ref: '#/components/schemas/Versioned'}}}}, responses: {'200': {description: the order, content: {application/json: {schema: {$ref: '#/components/schemas/Order'}}}}, default: {$ref: '#/components/responses/problem'}}}
+  /api/purchase/orders/{id}/cancel:
+    parameters: [{$ref: '#/components/parameters/id'}]
+    post: {operationId: cancelOrder, x-operation: erp.purchase.order.edit, summary: 'Cancel a draft or submitted order, or an approved one with nothing received or accepted (PO11)', requestBody: {content: {application/json: {schema: {$ref: '#/components/schemas/Versioned'}}}}, responses: {'200': {description: the order, content: {application/json: {schema: {$ref: '#/components/schemas/Order'}}}}, default: {$ref: '#/components/responses/problem'}}}
+  /api/purchase/orders/{id}/attachments:
+    parameters: [{$ref: '#/components/parameters/id'}]
+    post:
+      operationId: requestAttachmentUpload
+      x-operation: erp.purchase.order.edit
+      summary: Ask infra/attachment for an upload session of a contract or an invoice scan (not on a cancelled or closed order; an invoice scan needs its field's read too)
+      description: >-
+        The user then PUTs the file to upload_url with exactly the size and type given, and confirms at the attachment
+        component (confirm.component, confirm.path) with confirm_credential. 503 DEPENDENCY_UNAVAILABLE without one.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [file_name, size, content_type]
+              properties:
+                category: {enum: [erp.purchase.order_contract, erp.purchase.order_invoice]}
+                file_name: {type: string}
+                size: {type: integer, minimum: 1}
+                content_type: {type: string}
+                replace_attachment_id: {type: string, format: uuid, description: 'a new content version of this attachment'}
+      responses:
+        '200':
+          description: the upload session
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [attachment_id, version, upload_url, confirm_credential, expires_at, confirm]
+                properties:
+                  attachment_id: {type: string, format: uuid}
+                  version: {type: integer}
+                  upload_url: {type: string}
+                  confirm_credential: {type: string}
+                  expires_at: {type: string, format: date-time}
+                  confirm: {$ref: '#/components/schemas/AttachmentEntry'}
+        default: {$ref: '#/components/responses/problem'}
+    get:
+      operationId: listAttachments
+      x-operation: erp.purchase.order.read
+      summary: The order's attachments the caller may read (the invoice scans only with their field's read)
+      responses:
+        '200':
+          description: the attachments
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [attachments]
+                properties:
+                  attachments:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, category, state, file_name, size, content_type, version, unscanned, created_at]
+                      properties:
+                        id: {type: string, format: uuid}
+                        category: {type: string}
+                        state: {type: string}
+                        file_name: {type: string}
+                        size: {type: integer}
+                        content_type: {type: string}
+                        version: {type: integer}
+                        unscanned: {type: boolean}
+                        created_at: {type: string, format: date-time}
+        default: {$ref: '#/components/responses/problem'}
+  /api/purchase/orders/{id}/attachments/{aid}/download:
+    parameters: [{$ref: '#/components/parameters/id'}, {name: aid, in: path, required: true, schema: {type: string, format: uuid}}]
+    post:
+      operationId: requestAttachmentDownload
+      x-operation: erp.purchase.order.read
+      summary: Ask infra/attachment for the caller's download (a presigned url for a contract, a one-time credential for an invoice scan)
+      responses:
+        '200':
+          description: one of url, or credential with where to present it
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [expires_at]
+                properties:
+                  url: {type: string}
+                  credential: {type: string}
+                  download: {$ref: '#/components/schemas/AttachmentEntry'}
+                  expires_at: {type: string, format: date-time}
+        default: {$ref: '#/components/responses/problem'}
+  /api/purchase/orders/{id}/attachments/{aid}:
+    parameters: [{$ref: '#/components/parameters/id'}, {name: aid, in: path, required: true, schema: {type: string, format: uuid}}]
+    delete:
+      operationId: removeAttachment
+      x-operation: erp.purchase.order.edit
+      summary: Take an attachment off the order (detached at infra/attachment; restorable there within its grace period)
+      responses:
+        '204': {description: detached}
+        default: {$ref: '#/components/responses/problem'}
+  /api/purchase/orders/{id}/prepayments:
+    parameters: [{$ref: '#/components/parameters/id'}]
+    post: {operationId: requestPrepayment, x-operation: erp.purchase.order.edit, summary: 'Ask erp/finance for a prepayment (protocol 05); not in this version: CAPABILITY_UNSUPPORTED', responses: {default: {$ref: '#/components/responses/problem'}}}
+  /api/purchase/orders/{id}/receipts:
+    parameters: [{$ref: '#/components/parameters/id'}]
+    post:
+      operationId: receive
+      x-operation: erp.purchase.receipt.create
+      summary: Receive goods lines into one warehouse (Idempotency-Key; PO07)
+      description: >-
+        The receipt is made (receiving) with each line's valuation basis, then erp/inventory takes it in. Answers 200
+        with the receipt posted, 409 with it failed (erp/inventory refused it), or 202 with it still receiving (the
+        outcome is not known yet: the member sends it again and erp/inventory's movement events settle it).
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ReceiptIn'}}}}
+      responses:
+        '200': {description: posted, content: {application/json: {schema: {$ref: '#/components/schemas/Receipt'}}}}
+        '202': {description: still receiving, content: {application/json: {schema: {$ref: '#/components/schemas/Receipt'}}}}
+        default: {$ref: '#/components/responses/problem'}
+  /api/purchase/receipts:
+    get:
+      operationId: listReceipts
+      x-operation: erp.purchase.receipt.read
+      parameters:
+        - {name: order_id, in: query, schema: {type: string, format: uuid}}
+        - {name: legal_entity_id, in: query, schema: {type: string, format: uuid}}
+        - {name: state, in: query, schema: {enum: [receiving, posted, failed]}}
+        - $ref: '#/components/parameters/cursor'
+        - $ref: '#/components/parameters/limit'
+      responses:
+        '200':
+          description: one page, newest first
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [receipts, next_cursor]
+                properties:
+                  receipts: {type: array, items: {$ref: '#/components/schemas/Receipt'}}
+                  next_cursor: {type: string}
+        default: {$ref: '#/components/responses/problem'}
+  /api/purchase/receipts/{id}:
+    parameters: [{$ref: '#/components/parameters/id'}]
+    get: {operationId: getReceipt, x-operation: erp.purchase.receipt.read, responses: {'200': {description: the receipt, content: {application/json: {schema: {$ref: '#/components/schemas/Receipt'}}}}, default: {$ref: '#/components/responses/problem'}}}
+  /api/purchase/orders/{id}/acceptances:
+    parameters: [{$ref: '#/components/parameters/id'}]
+    post:
+      operationId: accept
+      x-operation: erp.purchase.receipt.create
+      summary: Accept service lines by quantity or amount (Idempotency-Key; PO08)
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/AcceptanceIn'}}}}
+      responses:
+        '200': {description: the acceptance, content: {application/json: {schema: {$ref: '#/components/schemas/Acceptance'}}}}
+        default: {$ref: '#/components/responses/problem'}
+  /api/purchase/acceptances/{id}:
+    parameters: [{$ref: '#/components/parameters/id'}]
+    get: {operationId: getAcceptance, x-operation: erp.purchase.receipt.read, responses: {'200': {description: the acceptance, content: {application/json: {schema: {$ref: '#/components/schemas/Acceptance'}}}}, default: {$ref: '#/components/responses/problem'}}}
+  /api/purchase/orders/{id}/returns:
+    parameters: [{$ref: '#/components/parameters/id'}]
+    post:
+      operationId: returnGoods
+      x-operation: erp.purchase.return.edit
+      summary: Return goods from receipt movements (Idempotency-Key; PO09)
+      description: >-
+        Each line names a receipt movement of this order; more than it has left is refused before anything is made
+        (RETURN_EXCEEDS_RECEIPT); with erp/costing deployed and valuing by FIFO, more of a movement than its cost layer
+        has in stock is refused too (RETURN_EXCEEDS_COST_LAYER). The lines are then issued by erp/inventory one by one: 200 when every line is posted
+        or failed, 202 while a line is still returning.
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ReturnIn'}}}}
+      responses:
+        '200': {description: settled, content: {application/json: {schema: {$ref: '#/components/schemas/Return'}}}}
+        '202': {description: a line still returning, content: {application/json: {schema: {$ref: '#/components/schemas/Return'}}}}
+        default: {$ref: '#/components/responses/problem'}
+  /api/purchase/returns:
+    get:
+      operationId: listReturns
+      x-operation: erp.purchase.return.read
+      parameters:
+        - {name: order_id, in: query, schema: {type: string, format: uuid}}
+        - {name: legal_entity_id, in: query, schema: {type: string, format: uuid}}
+        - $ref: '#/components/parameters/cursor'
+        - $ref: '#/components/parameters/limit'
+      responses:
+        '200':
+          description: one page, newest first
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [returns, next_cursor]
+                properties:
+                  returns: {type: array, items: {$ref: '#/components/schemas/Return'}}
+                  next_cursor: {type: string}
+        default: {$ref: '#/components/responses/problem'}
+  /api/purchase/returns/{id}:
+    parameters: [{$ref: '#/components/parameters/id'}]
+    get: {operationId: getReturn, x-operation: erp.purchase.return.read, responses: {'200': {description: the return, content: {application/json: {schema: {$ref: '#/components/schemas/Return'}}}}, default: {$ref: '#/components/responses/problem'}}}
+  /api/purchase/policies/{legal_entity_id}:
+    parameters: [{name: legal_entity_id, in: path, required: true, schema: {type: string, format: uuid}}]
+    get: {operationId: getPolicy, x-operation: erp.purchase.policy.read, summary: 'The legal entity''s purchase policy (the starting values when none was set)', responses: {'200': {description: the policy, content: {application/json: {schema: {$ref: '#/components/schemas/Policy'}}}}, default: {$ref: '#/components/responses/problem'}}}
+    put: {operationId: putPolicy, x-operation: erp.purchase.policy.manage, summary: 'Set the legal entity''s purchase policy', requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/PolicyIn'}}}}, responses: {'200': {description: the policy, content: {application/json: {schema: {$ref: '#/components/schemas/Policy'}}}}, default: {$ref: '#/components/responses/problem'}}}
+  /api/purchase/price-lists:
+    get: {operationId: listPriceLists, x-operation: erp.purchase.order.read, summary: 'Supplier price lists; not in this version: CAPABILITY_UNSUPPORTED', responses: {default: {$ref: '#/components/responses/problem'}}}
+components:
+  parameters:
+    id: {name: id, in: path, required: true, schema: {type: string, format: uuid}}
+    cursor: {name: cursor, in: query, schema: {type: string}}
+    limit: {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 200, default: 50}}
+  responses:
+    problem:
+      description: an error (application/problem+json with reason)
+      content:
+        application/problem+json:
+          schema:
+            type: object
+            required: [reason]
+            properties: {reason: {type: string}, detail: {type: string}}
+  schemas:
+    AttachmentEntry: {type: object, required: [component, path], properties: {component: {type: string}, path: {type: string}}, description: 'where on infra/attachment the user presents the credential'}
+    Decimal: {type: string, pattern: '^[0-9]+(\.[0-9]+)?$', description: a decimal string}
+    Versioned:
+      type: object
+      additionalProperties: false
+      properties: {version: {type: integer, description: 'the version the change is made on; omitted: the current one'}}
+    Reason:
+      type: object
+      additionalProperties: false
+      required: [reason]
+      properties: {reason: {type: string, minLength: 1}, version: {type: integer}}
+    RequisitionIn:
+      type: object
+      additionalProperties: false
+      required: [legal_entity_id, lines]
+      properties:
+        legal_entity_id: {type: string, format: uuid}
+        department_id: {type: [string, 'null'], format: uuid}
+        version: {type: integer, description: 'a change: the version it is made on'}
+        lines:
+          type: array
+          minItems: 1
+          maxItems: 200
+          items:
+            type: object
+            additionalProperties: false
+            required: [product_id, quantity, unit]
+            properties:
+              product_id: {type: string, format: uuid}
+              quantity: {$ref: '#/components/schemas/Decimal'}
+              unit: {type: string}
+              needed_date: {type: [string, 'null'], format: date}
+    OrderIn:
+      type: object
+      additionalProperties: false
+      required: [legal_entity_id, supplier_id, currency, lines]
+      properties:
+        legal_entity_id: {type: string, format: uuid}
+        supplier_id: {type: string, format: uuid}
+        currency: {type: string, pattern: '^[A-Z]{3}$'}
+        business_date: {type: string, format: date, description: 'omitted: the legal entity''s today'}
+        owner_id: {type: string, description: 'omitted: the caller'}
+        department_id: {type: [string, 'null'], format: uuid}
+        version: {type: integer, description: 'a change or a revision: the version it is made on'}
+        lines:
+          type: array
+          minItems: 1
+          maxItems: 200
+          items:
+            type: object
+            additionalProperties: false
+            required: [product_id, quantity, unit, unit_price]
+            properties:
+              id: {type: string, format: uuid, description: 'a revision: the line it keeps'}
+              product_id: {type: string, format: uuid}
+              quantity: {$ref: '#/components/schemas/Decimal'}
+              unit: {type: string}
+              unit_price: {$ref: '#/components/schemas/Decimal'}
+              warehouse_id: {type: string, format: uuid, description: 'goods: required; in the order''s legal entity'}
+              expected_date: {type: [string, 'null'], format: date}
+              requisition_line_id: {type: [string, 'null'], format: uuid}
+              project_ref: {type: [string, 'null']}
+    ReceiptIn:
+      type: object
+      additionalProperties: false
+      required: [lines]
+      properties:
+        warehouse_id: {type: string, format: uuid, description: 'omitted: the lines'' warehouse (all the same)'}
+        business_date: {type: string, format: date}
+        lines:
+          type: array
+          minItems: 1
+          maxItems: 200
+          items:
+            type: object
+            additionalProperties: false
+            required: [order_line_id, quantity]
+            properties:
+              order_line_id: {type: string, format: uuid}
+              quantity: {$ref: '#/components/schemas/Decimal'}
+              batch: {type: string}
+              serials: {type: array, items: {type: string}}
+    AcceptanceIn:
+      type: object
+      additionalProperties: false
+      required: [lines]
+      properties:
+        business_date: {type: string, format: date}
+        lines:
+          type: array
+          minItems: 1
+          maxItems: 200
+          items:
+            type: object
+            additionalProperties: false
+            required: [order_line_id]
+            properties:
+              order_line_id: {type: string, format: uuid}
+              quantity: {$ref: '#/components/schemas/Decimal'}
+              amount: {$ref: '#/components/schemas/Decimal', description: 'omitted: quantity × unit price'}
+    ReturnIn:
+      type: object
+      additionalProperties: false
+      required: [lines]
+      properties:
+        reason: {type: string}
+        business_date: {type: string, format: date}
+        lines:
+          type: array
+          minItems: 1
+          maxItems: 200
+          items:
+            type: object
+            additionalProperties: false
+            required: [origin_movement_id, base_quantity]
+            properties:
+              origin_movement_id: {type: string, format: uuid, description: 'a receipt movement of this order'}
+              base_quantity: {$ref: '#/components/schemas/Decimal'}
+              serials: {type: array, items: {type: string}}
+    Acceptance:
+      type: object
+      required: [id, number, order_id, legal_entity_id, business_date, lines]
+      properties:
+        id: {type: string, format: uuid}
+        number: {type: string}
+        order_id: {type: string, format: uuid}
+        legal_entity_id: {type: string, format: uuid}
+        business_date: {type: string, format: date}
+        accepted_by: {type: string}
+        version: {type: integer, minimum: 1, description: 'always 1: an acceptance never changes (alpha.2)'}
+        lines:
+          type: array
+          items:
+            type: object
+            required: [id, order_line_id, quantity, amount]
+            properties: {id: {type: string, format: uuid}, order_line_id: {type: string, format: uuid}, quantity: {$ref: '#/components/schemas/Decimal'}, amount: {$ref: '#/components/schemas/Decimal'}}
+    PolicyIn:
+      type: object
+      additionalProperties: false
+      required: [approval, over_receipt_percent]
+      properties:
+        approval: {enum: [required, none]}
+        approver_position_id: {type: [string, 'null'], format: uuid, description: 'a position of mdm/org: its holders in the legal entity approve (needs mdm/employee); at most one of this and approver_principal'}
+        approver_principal: {type: [string, 'null'], minLength: 1, description: 'the one principal who approves'}
+        over_receipt_percent: {$ref: '#/components/schemas/Decimal'}
+        version: {type: integer}
+    Policy:
+      type: object
+      required: [legal_entity_id, approval, approver_position_id, approver_principal, over_receipt_percent, version]
+      properties:
+        legal_entity_id: {type: string, format: uuid}
+        approval: {enum: [required, none]}
+        approver_position_id: {type: [string, 'null'], format: uuid}
+        approver_principal: {type: [string, 'null']}
+        over_receipt_percent: {$ref: '#/components/schemas/Decimal'}
+        version: {type: integer, description: '0: the starting values, never set'}
+    Requisition: {$ref: 'events/erp.purchase_requisition.changed.v1.schema.json'}
+    Order: {$ref: 'events/erp.purchase_order.changed.v1.schema.json'}
+    Receipt: {$ref: 'events/erp.purchase_receipt.changed.v1.schema.json'}
+    Return: {$ref: 'events/erp.purchase_return.changed.v1.schema.json'}

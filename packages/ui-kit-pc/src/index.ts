@@ -1,8 +1,8 @@
 // The kit: the only place third-party UI appears (FP01). Pages and the shell import from here.
 import type { App } from "vue";
 import "ant-design-vue/dist/reset.css";
-import VxeUI from "vxe-pc-ui";
-import "vxe-pc-ui/lib/style.css";
+// vxe-table alone: it takes only types from vxe-pc-ui, whose full install doubled the first load (C12 P5: the
+// shell chunk 1522 kB -> 862 kB, its CSS 630 kB -> 154 kB)
 import VxeTable from "vxe-table";
 import "vxe-table/lib/style.css";
 import "./kit.css";
@@ -28,5 +28,5 @@ export {
 } from "ant-design-vue";
 
 export function installKit(app: App): void {
-  app.use(VxeUI).use(VxeTable);
+  app.use(VxeTable);
 }

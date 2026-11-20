@@ -25,6 +25,8 @@ export const state = reactive({
   prefs: loadPrefs(storage, navigator.language) as Prefs,
   newBuild: false,
   user: "",
+  legalEntity: undefined as string | undefined, // FP10: a filter of the lists, not a selected appointment
+  legalEntities: [] as { id: string; code: string; name: string; timezone: string }[],
 });
 export const permissions = ref<Permissions | null>(null);
 export const tabs = reactive(new Tabs());
@@ -90,6 +92,7 @@ export async function start(): Promise<void> {
   await p.refresh(false);
   permissions.value = p;
   state.phase = "in";
+  void loadLegalEntities();
   channel?.addEventListener("message", (e) => void onMessage(browser, e.data));
   const poll = () => {
     if (document.visibilityState !== "visible") return; // no polling behind a hidden tab (FP06)
@@ -98,6 +101,15 @@ export async function start(): Promise<void> {
   };
   setInterval(poll, Math.min(REFRESH_MS, CHECK_MS));
   window.addEventListener("focus", poll);
+}
+
+/** FP10: the legal entities the user can see in mdm/org (none when the deployment has no mdm/org). */
+async function loadLegalEntities(): Promise<void> {
+  if (!state.features?.components.some((c) => c.id === "mdm/org")) return;
+  const out = await api("GET", "/api/org/legal-entities?state=active&limit=200");
+  if (out.kind !== "ok") return;
+  state.legalEntities = (out.body as { legal_entities: typeof state.legalEntities }).legal_entities;
+  state.legalEntity ??= state.legalEntities[0]?.id;
 }
 
 async function checkVersion(): Promise<void> {
